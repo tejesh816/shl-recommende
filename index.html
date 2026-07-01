@@ -2,21 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SHL Recommender Chatbot</title>
+    <title>SHL Assessment Recommendation Interface</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f4f4f9; padding: 20px; }
-        #chat-box { width: 400px; height: 400px; background: white; border: 1px solid #ccc; overflow-y: auto; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
-        #user-input { width: 310px; padding: 8px; }
-        button { padding: 8px 12px; cursor: pointer; }
-        .user-msg { color: blue; text-align: right; margin: 5px 0; }
-        .bot-msg { color: green; text-align: left; margin: 5px 0; }
+        #chat-container { width: 850px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #chat-box { height: 500px; border: 1px solid #ccc; overflow-y: auto; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #fafafa; }
+        #input-container { display: flex; gap: 10px; }
+        #user-input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .user-msg { color: #004085; text-align: right; margin: 10px 0; background: #e2e3e5; padding: 8px 12px; border-radius: 15px 15px 0 15px; max-width: 70%; margin-left: auto; }
+        .bot-msg { color: #155724; text-align: left; margin: 10px 0; background: #d4edda; padding: 12px; border-radius: 15px 15px 15px 0; max-width: 90%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        a { color: #007bff; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <h2>Recommender Chatbot</h2>
-    <div id="chat-box"></div>
-    <input type="text" id="user-input" placeholder="Type a message...">
-    <button onclick="sendMessage()">Send</button>
+    <div id="chat-container">
+        <h2>SHL Assessment Recommender System</h2>
+        <div id="chat-box"></div>
+        <div id="input-container">
+            <input type="text" id="user-input" placeholder="Type a job role or skills (e.g., 'Java Web Developer' or 'Cognitive Skill Testing')...">
+            <button onclick="sendMessage()">Find Assessments</button>
+        </div>
+    </div>
 
     <script>
         async function sendMessage() {
@@ -28,9 +41,9 @@
             // Display user message
             chatBox.innerHTML += `<div class="user-msg"><b>You:</b> ${message}</div>`;
             inputElement.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                // Connects directly to your live Railway cloud server
                 const response = await fetch('https://shl-recommende-production-6fba.up.railway.app/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -38,10 +51,36 @@
                 });
                 const data = await response.json();
                 
-                // Display bot response
-                chatBox.innerHTML += `<div class="bot-msg"><b>Bot:</b> ${data.response || data.message || JSON.stringify(data)}</div>`;
+                let botHtml = `<div class="bot-msg"><b>System Response:</b><br>${data.response}`;
+                
+                if (data.recommendations && data.recommendations.length > 0) {
+                    botHtml += `<table>
+                        <tr>
+                            <th>Assessment Name</th>
+                            <th>Type</th>
+                            <th>Duration</th>
+                            <th>Remote</th>
+                            <th>Adaptive (IRT)</th>
+                            <th>Link</th>
+                        </tr>`;
+                    
+                    data.recommendations.forEach(item => {
+                        botHtml += `<tr>
+                            <td><b>${item.assessment_name}</b></td>
+                            <td>${item.test_type}</td>
+                            <td>${item.duration}</td>
+                            <td>${item.remote_testing_support}</td>
+                            <td>${item.adaptive_irt_support}</td>
+                            <td><a href="${item.url}" target="_blank">View Test</a></td>
+                        </tr>`;
+                    });
+                    botHtml += `</table>`;
+                }
+                
+                botHtml += `</div>`;
+                chatBox.innerHTML += botHtml;
             } catch (error) {
-                chatBox.innerHTML += `<div class="bot-msg" style="color:red;"><b>Error:</b> Could not reach backend server.</div>`;
+                chatBox.innerHTML += `<div class="bot-msg" style="color:red; background:#f8d7da;"><b>Error:</b> Could not communicate with your live Railway API backend server. Check logs.</div>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         }
